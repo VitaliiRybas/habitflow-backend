@@ -64,20 +64,24 @@ class Habit(HabitBase):
 
 @app.get("/habits", response_model=List[Habit])
 def get_habits(user_id: int = Query(...)):
-    db = SessionLocal()
-    habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
-    for habit in habits:
-        try:
-            if habit.streak_data:
-                habit.streak_data = json.loads(habit.streak_data)
-            else:
+    try:
+        db = SessionLocal()
+        habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
+        for habit in habits:
+            try:
+                if habit.streak_data:
+                    habit.streak_data = json.loads(habit.streak_data)
+                else:
+                    habit.streak_data = ["none"] * 7
+            except Exception as e:
+                print(f"⚠️ JSON decode error for habit ID {habit.id}: {e}")
                 habit.streak_data = ["none"] * 7
-        except Exception as e:
-            print(f"⚠️ JSON decode error for habit ID {habit.id}: {e}")
-            habit.streak_data = ["none"] * 7
-
-    db.close()
-    return habits
+        return habits
+    except Exception as e:
+        print(f"💥 Critical error in /habits: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
 
 @app.post("/habits", response_model=Habit)
 def create_habit(habit: HabitCreate):
