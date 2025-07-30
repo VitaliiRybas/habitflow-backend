@@ -6,13 +6,21 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 import json
 
 app = FastAPI()
 
+origins = [
+    "https://habitflow-webapp.vercel.app",
+    "https://web.telegram.org",
+    "https://t.me",
+    "https://web.telegram.org/k/"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
