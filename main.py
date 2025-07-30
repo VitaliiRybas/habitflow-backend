@@ -10,10 +10,9 @@ import json
 
 app = FastAPI()
 
-# Дозволяємо запити з Vercel і Telegram
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 👈 тимчасово дозволяємо все
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -24,9 +23,6 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# ========================
-# Database модель
-# ========================
 class HabitDB(Base):
     __tablename__ = "habits"
     id = Column(Integer, primary_key=True, index=True)
@@ -38,9 +34,6 @@ class HabitDB(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ========================
-# Pydantic моделі
-# ========================
 class HabitBase(BaseModel):
     title: str
     user_id: int
@@ -61,15 +54,16 @@ class Habit(HabitBase):
     class Config:
         orm_mode = True
 
-# ========================
-# API
-# ========================
 @app.get("/habits", response_model=List[Habit])
 def get_habits(user_id: int = Query(...)):
     db = SessionLocal()
     habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
     for habit in habits:
-        habit.streak_data = json.loads(habit.streak_data)
+        try:
+            habit.streak_data = json.loads(habit.streak_data)
+        except Exception:
+            habit.streak_data = ["none"] * 7  # або будь-яке дефолтне значення
+
     db.close()
     return habits
 
@@ -127,7 +121,6 @@ def mark_done_today(habit_id: int):
     streak = json.loads(habit.streak_data)
     streak[-1] = "done"
 
-    # Псевдологіка підрахунку тижнів
     if all(day == "done" for day in streak):
         habit.weeks_count += 1
         streak = ["none"] * 7
