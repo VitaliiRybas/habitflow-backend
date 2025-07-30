@@ -13,16 +13,16 @@ app = FastAPI()
 # Дозволяємо запити з Vercel і Telegram
 origins = [
     "https://habitflow-webapp.vercel.app",
-    "https://t.me"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,  # або ["*"] для тесту
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./habits.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
