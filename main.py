@@ -28,7 +28,7 @@ class HabitDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     user_id = Column(Integer, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     streak_data = Column(Text, default='["none", "none", "none", "none", "none", "none", "none"]')
     weeks_count = Column(Integer, default=0)
 
@@ -47,38 +47,29 @@ class HabitUpdate(HabitBase):
 
 class Habit(HabitBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     streak_data: List[str]
     weeks_count: int
 
     class Config:
         orm_mode = True
 
-@app.get("/habits")
-def get_habits_debug(user_id: int = Query(...)):
+@app.get("/habits", response_model=List[Habit])
+def get_habits(user_id: int = Query(...)):
     db = SessionLocal()
-    try:
-        habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
-        result = []
-        for habit in habits:
-            try:
-                streak_data = json.loads(habit.streak_data) if habit.streak_data else ["none"] * 7
-            except Exception as e:
-                streak_data = ["none"] * 7
-            result.append({
-                "id": habit.id,
-                "title": habit.title,
-                "user_id": habit.user_id,
-                "created_at": str(habit.created_at),
-                "streak_data": streak_data,
-                "weeks_count": habit.weeks_count
-            })
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-    finally:
-        db.close()
+    habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
+    for habit in habits:
+        try:
+            if habit.streak_data:
+                habit.streak_data = json.loads(habit.streak_data)
+            else:
+                habit.streak_data = ["none"] * 7
+        except Exception as e:
+            print(f"⚠️ JSON decode error for habit ID {habit.id}: {e}")
+            habit.streak_data = ["none"] * 7
 
+    db.close()
+    return habits
 
 @app.post("/habits", response_model=Habit)
 def create_habit(habit: HabitCreate):
