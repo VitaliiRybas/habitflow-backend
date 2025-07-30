@@ -60,9 +60,13 @@ def get_habits(user_id: int = Query(...)):
     habits = db.query(HabitDB).filter(HabitDB.user_id == user_id).all()
     for habit in habits:
         try:
-            habit.streak_data = json.loads(habit.streak_data)
-        except Exception:
-            habit.streak_data = ["none"] * 7  # або будь-яке дефолтне значення
+            if habit.streak_data:
+                habit.streak_data = json.loads(habit.streak_data)
+            else:
+                habit.streak_data = ["none"] * 7
+        except Exception as e:
+            print(f"⚠️ JSON decode error for habit ID {habit.id}: {e}")
+            habit.streak_data = ["none"] * 7
 
     db.close()
     return habits
