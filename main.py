@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, inspect
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
@@ -32,7 +32,7 @@ app.add_middleware(
 # ========================
 # Підключення до БД
 # ========================
-Base.metadata.create_all(bind=engine)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./database.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -65,7 +65,7 @@ class Habit(BaseModel):
         orm_mode = True
 
 # ========================
-# Роут
+# Роути
 # ========================
 @app.get("/")
 def root():
@@ -117,3 +117,9 @@ def delete_habit(habit_id: int):
     db.commit()
     db.close()
     return {"detail": "Habit deleted"}
+
+@app.get("/debug-columns")
+def debug_columns():
+    inspector = inspect(engine)
+    columns = inspector.get_columns("habits")
+    return {"columns": [col["name"] for col in columns]}
