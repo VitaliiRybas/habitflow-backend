@@ -171,4 +171,4 @@ def mark_done_today(habit_id: int, user_id: int = Query(...)):
         logging.info(f"✅ Marked done for habit ID {habit_id}, user {user_id}")
         return habit
     finally:
-        db.close()
+        db.close() # force redeploy
