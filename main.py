@@ -38,7 +38,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # ========================
-# Модель
+# Модель SQLAlchemy
 # ========================
 class HabitDB(Base):
     __tablename__ = "habits"
@@ -52,17 +52,22 @@ class HabitDB(Base):
 Base.metadata.create_all(bind=engine)
 
 # ========================
-# Pydantic
+# Pydantic моделі
 # ========================
-class Habit(BaseModel):
-    id: Optional[int]
+class HabitBase(BaseModel):
     title: str
     user_id: int
-    created_at: Optional[datetime] = None
+
+class HabitCreate(HabitBase):
+    pass
+
+class Habit(HabitBase):
+    id: int
+    created_at: datetime
     streak_data: Optional[str] = ""
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # для pydantic v2
 
 # ========================
 # Роути
@@ -83,9 +88,9 @@ def get_habits(user_id: int = Query(...)):
 
 
 @app.post("/habits", response_model=Habit)
-def add_habit(habit: Habit):
+def add_habit(habit_data: HabitCreate):
     db = SessionLocal()
-    db_habit = HabitDB(**habit.dict())
+    db_habit = HabitDB(**habit_data.dict())
     db.add(db_habit)
     db.commit()
     db.refresh(db_habit)
